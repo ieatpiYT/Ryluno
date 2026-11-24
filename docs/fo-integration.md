@@ -10,7 +10,7 @@ No real text check-in has been sent or verified end-to-end by this implementatio
 
 Use one local Node process and one owner, without public tunnels or shared hosting. The code requires development mode, `FO_DEV_ENABLED=true`, and `FO_DEV_PASSWORD` of at least 32 characters in ignored `.env.local`. Never use `NEXT_PUBLIC` for these values or any credentials.
 
-Run `npm run dev -- --hostname localhost --port 3000`. In that same browser/profile, open Preferences → Fo accountability → Unlock local connection, enter the local development password, and select Connect Fo. Ryluno verifies the HttpOnly cookie before OAuth. The exact callback is `http://localhost:3000/api/fo/callback`. Complete Wajo consent and return to Preferences. Verify connection retrieves tool schemas without sending messages.
+Run `npm run dev -- --hostname localhost --port 3000`. In that same browser/profile, open Settings → Fo check-ins → Connect in local development → Unlock local connection, enter the local development password, and select Connect Fo. Ryluno verifies the HttpOnly cookie before OAuth. The exact callback is `http://localhost:3000/api/fo/callback`. Complete Wajo consent and return to Settings → Fo check-ins. Verify connection retrieves tool schemas without sending messages.
 
 The official `@modelcontextprotocol/client` v2 OAuth provider uses dynamic client registration, public-client authentication (`none`), PKCE S256, scope `mcp`, pinned issuer/resource, and single-use state. No Copilot credentials are reused. Tokens and registration information remain server-memory-only. Restart requires unlocking and reconnecting. Local sessions expire after one hour. Disconnect clears local credentials but does not revoke Wajo consent.
 
@@ -20,7 +20,7 @@ Every endpoint except password login requires the local cookie. Origin/Host and 
 
 1. Select an actual local study session. Ended scheduled sessions are described as missed. Optionally explicitly select a fresh Fo conversation; otherwise the current conversation is used.
 2. Request a preview. The server freezes and signs the exact instructions, session reference and conversation choice, bound to the local login for ten minutes.
-3. Read the preview, check the approval box, then select Confirm and send text. No message is sent merely by opening Preferences, preparing a draft, connecting, or refreshing saved status.
+3. Read the preview, check the approval box, then select Confirm and send text. No message is sent merely by opening Settings, preparing a draft, connecting, or refreshing saved status.
 4. Working replies are polled automatically with `get_fo_reply` (`waitSeconds: 10`), with a delay between polls. Polling stops for a final reply, error, question, or after ten minutes. Keep waiting resumes read-only polling; Pause reply checking does not cancel Fo’s remote work. Reopening the panel loads saved status; Keep waiting resumes an outstanding reply.
 5. Answers have their own exact preview and confirmation and continue the saved conversation. Internal conversation IDs are not exposed by the UI/API.
 

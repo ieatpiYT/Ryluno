@@ -10,8 +10,19 @@ Ryluno makes room for steady progress: log a problem, reflect on how it went, an
 - Get explainable review recommendations based on outcomes and confidence.
 - Plan study sessions around your timezone, weekly availability, and interview date.
 - Complete, skip, or reschedule sessions and review your progress.
-- Use guided onboarding, browser-local persistence, and JSON backup/import.
+- Start with one-screen onboarding, browser-local persistence, and JSON backup/import.
 - Preview text-only Fo accountability instructions for a selected session.
+
+### A simpler study flow
+
+- **Today:** one recommended practice action, a compact daily goal, and an expandable study plan.
+- **Practice:** a quick single-form log and a dedicated review filter; time, confidence, tags, and notes stay under optional details.
+- **Progress:** activity and topic confidence in one place.
+- **Settings:** study rhythm, optional Fo check-ins, and backups, grouped behind expandable controls.
+
+New users start with three 25-minute sessions per week and Easy difficulty. Existing preferences are preserved. The existing planner creates a plan at setup and fills a new horizon when the current plan runs out; it does not move existing sessions on reload. Availability and manual adjustments remain available in Settings and Today’s study plan.
+
+Fo development controls are omitted in production. In development, check-ins are available from Settings and contextually for recent study sessions. No message is sent without reviewing the exact instructions and confirming.
 
 ### Fo integration status
 

@@ -12,10 +12,10 @@ async function request<T>(action: string, body?: object): Promise<T> {
   return data;
 }
 const labels = { sending: 'Sending or interrupted — do not resend', working: 'Fo is working', complete: 'Reply received', failed: 'Fo could not complete this request', approval_required: 'Your answer or approval is needed', unknown: 'Delivery uncertain — do not resend' };
-export function FoCheckins({ sessions, timezone, enabled }: { sessions: Session[]; timezone: string; enabled: boolean }) {
+export function FoCheckins({ sessions, timezone, enabled, selectedSession }: { sessions: Session[]; timezone: string; enabled: boolean; selectedSession?: string }) {
   const [now] = useState(() => Date.now());
   const [records, setRecords] = useState<CheckinView[]>([]);
-  const [sessionId, setSessionId] = useState('');
+  const [sessionId, setSessionId] = useState(selectedSession ?? '');
   const [newConversation, setNewConversation] = useState(false);
   const [draft, setDraft] = useState<CheckinDraft>();
   const [confirmed, setConfirmed] = useState(false);
@@ -62,18 +62,17 @@ export function FoCheckins({ sessions, timezone, enabled }: { sessions: Session[
   }
   const session = sessions.find(s => s.id === sessionId);
   return <div>
-    <p className="subtle">Text only. Every message requires your approval. Voice is disabled. Fo is instructed not to act outside this chat.</p>
-    {!enabled && <p>Verify the connection and tool schemas to enable check-ins.</p>}
+
+    {!enabled && <p>Verify your connection before requesting a check-in.</p>}
     {message && <p role="status">{message}</p>}
     <label className="field"><span>Study session for check-in</span><select value={sessionId} onChange={e => setSessionId(e.target.value)}>
       <option value="">Choose a session</option>{sessions.map(s => <option key={s.id} value={s.id}>{new Date(s.start).toLocaleString(undefined, { timeZone: timezone })} · {s.status === 'scheduled' && Date.parse(s.end) < now ? 'missed' : s.status}</option>)}
     </select></label>
-    <label className="checkbox"><input type="checkbox" checked={newConversation} onChange={e => setNewConversation(e.target.checked)}/> Start a fresh Fo conversation</label>
-    <button disabled={!enabled || !session || busy || polling} onClick={() => void preview({ session, timezone, newConversation })}>Request Fo check-in</button>
-    <button disabled={busy || polling} onClick={() => void perform(async () => { setRecords((await request<{ records: CheckinView[] }>('check-ins')).records); })}>Refresh saved status</button>
+    <details className="disclosure"><summary>Conversation options</summary><label className="checkbox"><input type="checkbox" checked={newConversation} onChange={e => setNewConversation(e.target.checked)}/> Start a fresh Fo conversation</label></details>
+    <button className="primary" disabled={!enabled || !session || busy || polling} onClick={() => void preview({ session, timezone, newConversation })}>Review check-in</button>
+    <button className="text-button" disabled={busy || polling} onClick={() => void perform(async () => { setRecords((await request<{ records: CheckinView[] }>('check-ins')).records); })}>Refresh saved status</button>
     {records.some(r => r.canPoll) && <button disabled={!enabled || busy} onClick={() => polling ? setPolling(false) : wait()}>{polling ? 'Pause reply checking' : 'Keep waiting for reply'}</button>}
-    {records.map(record => <article key={record.id} className="panel" aria-live="polite">
-      <h3>{labels[record.status]}</h3>
+    {[...records].sort((a,b)=>b.createdAt-a.createdAt).map((record,index) => <details open={index===0 || record.canPoll || record.status==='approval_required'} className="disclosure" key={record.id}><summary>{labels[record.status]} <span>{new Date(record.createdAt).toLocaleDateString()}</span></summary><article key={record.id} className="panel" aria-live="polite">
       <p className="subtle">{new Date(record.createdAt).toLocaleString()}</p>
       <details><summary>Approved instructions</summary><pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{record.instructions}</pre></details>
       {record.progress && <p>{record.progress}</p>}{record.response && <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{record.response}</p>}{record.error && <p>{record.error}</p>}
@@ -81,12 +80,12 @@ export function FoCheckins({ sessions, timezone, enabled }: { sessions: Session[
         <label className="field"><span>Your text reply (review before sending)</span><textarea required maxLength={2000} value={answer} onChange={e => setAnswer(e.target.value)}/></label>
         <button disabled={!enabled || busy || polling || !answer.trim()}>Review reply</button>
       </form>}
-    </article>)}
+    </article></details>)}
     {draft && <Dialog title="Review Fo check-in" description="These exact instructions will be sent. The preview expires in ten minutes." onClose={() => { if (!busy) setDraft(undefined); }}>
       <p>{draft.newConversation ? 'Start a fresh conversation.' : 'Continue the current conversation (or this check-in’s thread for a reply).'}</p>
       <pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{draft.instructions}</pre>
       <label className="checkbox"><input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)}/> I approve sending these exact instructions to Fo.</label>
-      <button disabled={!confirmed || !enabled || busy} onClick={() => void perform(async () => {
+      <button className="primary" disabled={!confirmed || !enabled || busy} onClick={() => void perform(async () => {
         const ticket = draft.ticket;
         setDraft(undefined); setConfirmed(false);
         // Never retry a send, including after an ambiguous network failure.

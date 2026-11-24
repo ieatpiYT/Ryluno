@@ -136,3 +136,46 @@ footer { color: #aaa1bb; font-size: 11px; margin-top: 22px; }
 }
 @media (prefers-reduced-motion:no-preference) { button,.button { transition: background .15s ease, border-color .15s ease; } }
 @media (max-width:800px) { input,select,textarea { font-size: 16px; }.availability input,.availability select { font-size: 16px; } }
+
+/* Consumer layout: one focal action, secondary tools revealed on demand. */
+.content { max-width: 1050px; padding-top: 48px; }
+.sidebar nav { margin-top: 48px; }
+.sidebar-bottom { padding-top: 24px; }
+.daily-goal { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 4px; border-bottom: 1px solid var(--border); }
+.daily-goal strong { font-size: 15px; font-weight: 550; }
+.daily-goal p { font-size: 13px; margin-top: 4px; }
+.goal-mark { flex-shrink: 0; padding: 10px; border-radius: 50%; background: #2c3c35; color: #c3e5ce; font-size: 13px; }
+.next-session { display: flex; align-items: center; gap: 10px; margin: 24px 0; font-size: 13px; }
+.schedule-disclosure { background: transparent; }
+.schedule-disclosure .planner-banner { background: transparent; border: 0; padding: 8px 0 20px; margin: 0; }
+.schedule-disclosure .panel { border: 0; background: transparent; padding: 0; }
+.practice-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+.practice-tabs button { background: transparent; border-color: transparent; color: var(--muted); }
+.practice-tabs button[aria-pressed=true] { background: #373044; color: var(--foreground); }
+.filters { align-items: start; }
+.filters input { min-width: 0; }
+.filter-disclosure { flex: 0 0 auto; max-width: 100%; }
+.filter-disclosure>summary { padding: 10px 16px; min-height: 45px; border: 1px solid var(--border); border-radius: 12px; }
+.filter-options { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; }
+.filter-options select { width: 100%; }
+.focus-description { margin-bottom: 24px; }
+.settings-note { padding: 22px 18px; border-bottom: 1px solid var(--border); }
+.settings-note h2 { font-size: 15px; margin-bottom: 8px; }
+.settings-note p { font-size: 13px; }
+.disclosure .panel { box-shadow: none; }
+pre { font-family: inherit; font-size: 14px; line-height: 1.7; }
+@media(max-width:800px) {
+  .sidebar { position: sticky; top: 0; z-index: 10; background: #1c1d29f5; }
+  .sidebar nav { margin-top: 14px; grid-template-columns: repeat(4,minmax(0,1fr)); }
+  .content { padding-top: 28px; }
+  .practice-tabs { gap: 4px; }
+  .practice-tabs button { font-size: 12px; padding: 10px; }
+  .filters { flex-wrap: nowrap; }
+  .filters input { min-width: 0; width: 0; }
+  .filter-disclosure[open] { max-width: 52%; }
+  .filter-options select { min-width: 0; }
+  .next-session { align-items: flex-start; }
+  .next-session svg { flex-shrink: 0; }
+  .modal .disclosure>summary { font-size: 13px; }
+  .session-actions { width: 100%; }
+}
