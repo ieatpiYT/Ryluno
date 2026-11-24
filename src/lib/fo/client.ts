@@ -8,14 +8,21 @@ const ISSUER = 'https://mcp.api.wajo.ai';
 type Tokens = Awaited<ReturnType<OAuthClientProvider['tokens']>>;
 type Information = Awaited<ReturnType<OAuthClientProvider['clientInformation']>>;
 
-/** Ephemeral by design: no tokens on disk, in cookies, in localStorage, or in logs. */
+export type ProviderSnapshot = {info: Information; tokens: Tokens; verifier:string; flow:{state:string;expires:number}};
+
+/** OAuth state stays server-side. Production callers persist only encrypted snapshots. */
 export class FoProvider implements OAuthClientProvider {
-  readonly redirectUrl = 'http://localhost:3000/api/fo/callback';
-  readonly clientMetadata = {
-    client_name: 'Ryluno local development', application_type: 'web' as const,
+  readonly redirectUrl: string;
+  constructor(redirectUrl = 'http://localhost:3000/api/fo/callback', saved?: ProviderSnapshot) {
+    this.redirectUrl = redirectUrl;
+    if(saved){this.info=saved.info;this.tokenSet=saved.tokens;this.verifier=saved.verifier;this.flow=saved.flow;}
+  }
+  snapshot(): ProviderSnapshot {return {info:this.info,tokens:this.tokenSet,verifier:this.verifier,flow:this.flow};}
+  get clientMetadata() { return {
+    client_name: this.redirectUrl.startsWith('https://') ? 'Ryluno' : 'Ryluno local development', application_type: 'web' as const,
     redirect_uris: [this.redirectUrl], grant_types: ['authorization_code', 'refresh_token'],
     response_types: ['code'], token_endpoint_auth_method: 'none', scope: 'mcp',
-  };
+  }; }
   private info: Information;
   private tokenSet: Tokens;
   private verifier = '';

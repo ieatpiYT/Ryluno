@@ -1,2 +1,2 @@
-import Ryluno from '@/components/ryluno';
-export default function Home() { return <Ryluno/>; }
+import AccountWorkspace from '@/components/account-workspace';
+export default function Home() { return <AccountWorkspace/>; }

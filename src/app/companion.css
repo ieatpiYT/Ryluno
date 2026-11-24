@@ -179,3 +179,4 @@ pre { font-family: inherit; font-size: 14px; line-height: 1.7; }
   .modal .disclosure>summary { font-size: 13px; }
   .session-actions { width: 100%; }
 }
+.account-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 24px;border-bottom:1px solid #ddd;background:#fff;font-size:13px;flex-wrap:wrap}.account-bar .row-actions{flex-wrap:wrap}.fo-response{white-space:pre-wrap;overflow-wrap:anywhere}.fo-card{margin:20px 0}.fo-card textarea{width:100%;min-height:100px}.loading>.panel{width:min(440px,94vw)}

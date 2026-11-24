@@ -4,8 +4,8 @@ import { ArrowRight, Sprout } from 'lucide-react';
 import type { Settings } from '@/lib/types';
 import { localParts } from '@/lib/planner';
 import { Dialog, Field } from './dialog';
-export function Onboarding({ initial, onFinish, onClose }: {
-  initial: Settings; onFinish: (settings: Settings, addProblem: boolean) => boolean; onClose: () => void;
+export function Onboarding({ initial, onFinish, onClose, cloud=false }: {
+  initial: Settings; cloud?: boolean; onFinish: (settings: Settings, addProblem: boolean) => boolean; onClose: () => void;
 }) {
   const [settings, setSettings] = useState(initial);
   const [error, setError] = useState('');
@@ -23,7 +23,7 @@ export function Onboarding({ initial, onFinish, onClose }: {
         <Field label="Sessions each week"><input type="number" min="1" max="21" required value={settings.goal} onChange={e => setSettings({ ...settings, goal: Number(e.target.value) })}/></Field>
         <Field label="Interview date"><input type="date" value={settings.interview} onChange={e => setSettings({ ...settings, interview: e.target.value })}/></Field>
       </details>
-      <p className="subtle">No account needed. Your practice stays on this device. Optional Fo check-ins are in Settings.</p>
+      <p className="subtle">{cloud?'Your practice is saved to your account. Connect Fo on Today whenever you’re ready.':'No account needed. Your practice stays on this device. Optional Fo check-ins are in Settings.'}</p>
       <div className="modal-actions"><button className="primary" type="submit">Let’s begin <ArrowRight size={16}/></button></div>
     </form>
   </Dialog>;
