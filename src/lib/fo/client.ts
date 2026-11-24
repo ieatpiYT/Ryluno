@@ -76,7 +76,7 @@ export async function inspectFo(provider: FoProvider) {
   try {
     await client.connect(connection);
     const result = await client.listTools();
-    // Inspection only. No tools/call exists in this integration until schemas are reviewed.
+    // Read-only discovery. Text tool calls live in the separately guarded adapter.
     return { status: 'connected' as const, tools: result.tools };
   } catch (error) {
     if (error instanceof UnauthorizedError && provider.authorizationUrl) return { status: 'authorization_required' as const, tools: [] };

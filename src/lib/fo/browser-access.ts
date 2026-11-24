@@ -1,4 +1,4 @@
-type AccessResult = { status: string; authenticated?: boolean; message?: string; authorizationUrl?: string };
+type AccessResult = { status: string; authenticated?: boolean; submissionEnabled?: boolean; message?: string; authorizationUrl?: string };
 type FoAction = 'login' | 'connect' | 'logout';
 
 export async function readFoAccess(fetcher: typeof fetch = fetch, signal?: AbortSignal): Promise<AccessResult> {

@@ -1,5 +1,5 @@
 import 'server-only';
-import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+import { Client, StreamableHTTPClientTransport, SdkError, SdkErrorCode, UrlElicitationRequiredError } from '@modelcontextprotocol/client';
 import { FO_URL, type FoProvider } from './client.ts';
 import { parseFoReply, verifiedTextSchemas, object, type AskFoInput, type FoReply } from './contracts.ts';
 
@@ -35,14 +35,16 @@ export async function openTextConnection(provider: FoProvider): Promise<TextConn
     authProvider: { token: async () => token }, fetch: guardedFetch,
     reconnectionOptions: { maxRetries: 0, initialReconnectionDelay: 1000, maxReconnectionDelay: 1000, reconnectionDelayGrowFactor: 1 },
   });
-  const client = new Client({ name: 'ryluno-text-checkins', version: '0.1.0' });
+  const client = new Client({ name: 'ryluno-text-checkins', version: '0.1.0' }, { inputRequired: { autoFulfill: false } });
   try {
     await client.connect(connection);
     if (!verifiedTextSchemas((await client.listTools()).tools)) throw new Error('Fo schemas changed; submission blocked');
   } catch { await client.close().catch(() => {}); throw new Error('Could not verify Fo connection and text schemas. Use Verify connection. Nothing was sent.'); }
   async function invoke(name: 'ask_fo' | 'get_fo_reply', args: Record<string, unknown>) {
-    const result = await client.callTool({ name, arguments: args }, { timeout: 60_000 });
-    if (object(result) && (result.type === 'input_required' || result.resultType === 'input_required')) throw new ApprovalNeeded('Fo requires additional approval');
+    const result = await client.callTool({ name, arguments: args }, { timeout: 60_000 }).catch(error => {
+      if (error instanceof UrlElicitationRequiredError || (error instanceof SdkError && error.code === SdkErrorCode.UnsupportedResultType)) throw new ApprovalNeeded('Fo requires additional approval');
+      throw error;
+    });
     if (result.isError) throw new Error('Fo tool returned an error; delivery may have occurred');
     return parseFoReply(result.structuredContent, name === 'get_fo_reply');
   }

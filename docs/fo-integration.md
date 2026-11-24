@@ -1,38 +1,41 @@
-# Fo integration: verified foundation, submission blocked
+# Fo text accountability integration
 
-## Evidence inspected on November 20, 2026 (Toronto)
+## Verification boundary
 
-- The unauthenticated Fo endpoint returned HTTP 401 with `WWW-Authenticate: Bearer resource_metadata="https://mcp.api.wajo.ai/.well-known/oauth-protected-resource/fo"`.
-- [Protected resource metadata](https://mcp.api.wajo.ai/.well-known/oauth-protected-resource/fo) names resource `https://mcp.api.wajo.ai/fo`, authorization server `https://mcp.api.wajo.ai`, and scope `mcp`.
-- [Authorization metadata](https://mcp.api.wajo.ai/.well-known/oauth-authorization-server) advertises `/oauth/authorize`, `/oauth/token`, `/oauth/register`, authorization-code and refresh-token grants, public-client token authentication (`none`), and PKCE `S256`.
-- The referenced Copilot configuration contains only an HTTP server URL and no headers. Its separately managed OAuth credentials were not accessed or reused.
-- Consulted official [v2 OAuth documentation](https://ts.sdk.modelcontextprotocol.io/v2/clients/oauth.md), [client transport documentation](https://ts.sdk.modelcontextprotocol.io/v2/clients/connect.md), and installed SDK declarations. The supported official client is `@modelcontextprotocol/client` 2.4.0. Some current documentation describes logging options absent from this installed release; the integration does not rely on those options.
+The owner completed Ryluno’s independent website OAuth flow and supplied authenticated connection status and live tool schemas. The implemented contracts match that discovery: `ask_fo` accepts `message`, optional `conversationId` or `newConversation`; `get_fo_reply` accepts optional `conversationId` and `waitSeconds` (0–40). The adapter rechecks the live input/output schemas before every send or poll and fails closed on drift.
 
-## What is implemented
+No real text check-in has been sent or verified end-to-end by this implementation. Unit tests use fake connections. A live test requires the owner to review and explicitly approve the exact message. Voice remains disabled; the discovered `start_fo_call` creates a browser voice link, not a phone-number call.
 
-Server-only SDK transport, ephemeral OAuth provider, dynamic registration support, PKCE, issuer/resource restrictions, expiring one-use state bound to the local authenticated browser, callback handling, and authenticated read-only tool discovery. Settings displays connection state and exact proposed text instructions for a chosen session. Existing planner data remains browser-local.
+## Local setup and authentication
 
-All Fo routes require development mode, explicit enablement, the exact localhost origin/host, and (except login) a random HttpOnly session cookie. Writes also require the matching Origin. A 32-character minimum local password gates login; failed login attempts are throttled. Production routes fail closed. Use one local Node process, no public tunnel, reverse proxy, shared machine, or multi-user deployment.
+Use one local Node process and one owner, without public tunnels or shared hosting. The code requires development mode, `FO_DEV_ENABLED=true`, and `FO_DEV_PASSWORD` of at least 32 characters in ignored `.env.local`. Never use `NEXT_PUBLIC` for these values or any credentials.
 
-Tokens, registration information, verifier, and schemas remain in server memory, never Git, browser storage, or logs. Local login lasts one hour; a new login replaces the previous session. Restarting loses authorization. There is no durable token vault. Local disconnect deletes the connection; revoke consent at Wajo separately if needed. SDK error descriptions are sanitized and Next development request logging is disabled so callback codes do not appear in request logs.
+Run `npm run dev -- --hostname localhost --port 3000`. In that same browser/profile, open Preferences → Fo accountability → Unlock local connection, enter the local development password, and select Connect Fo. Ryluno verifies the HttpOnly cookie before OAuth. The exact callback is `http://localhost:3000/api/fo/callback`. Complete Wajo consent and return to Preferences. Verify connection retrieves tool schemas without sending messages.
 
-## Exact next setup step
+The official `@modelcontextprotocol/client` v2 OAuth provider uses dynamic client registration, public-client authentication (`none`), PKCE S256, scope `mcp`, pinned issuer/resource, and single-use state. No Copilot credentials are reused. Tokens and registration information remain server-memory-only. Restart requires unlocking and reconnecting. Local sessions expire after one hour. Disconnect clears local credentials but does not revoke Wajo consent.
 
-1. Create an ignored `.env.local` in the project root with `FO_DEV_ENABLED=true` and `FO_DEV_PASSWORD=<a unique random secret of at least 32 characters>`. Do not use a Wajo password or token. Generate a secret locally, for example `openssl rand -hex 32`.
-2. Start `npm run dev -- --hostname localhost --port 3000` and open `http://localhost:3000`. Open Preferences, enter that local secret, and select **Unlock local connection**, then **Connect Fo**.
-3. Ryluno attempts dynamic registration with callback **`http://localhost:3000/api/fo/callback`**, application type `web`, scope `mcp`, and PKCE. Complete Wajo consent in the browser. No manual client registration is assumed necessary because DCR is advertised, but registration and callback acceptance have NOT been live-tested. If rejected, ask Wajo to enable a public web OAuth client for this exact callback and confirm whether localhost web redirects are accepted. A manually issued client ID would require a separately reviewed configuration path; none is fabricated here.
-4. After successful consent, return to Preferences and verify connection. In the same authenticated browser, inspect `http://localhost:3000/api/fo/schemas`. This returns the actual discovered tool definitions, not credentials. Review `ask_fo`, `get_fo_reply`, and `get_fo_conversation` schemas and documented result examples before implementing an argument/result adapter. The current discovery stores the first tools/list page only; inspect pagination if needed.
+Every endpoint except password login requires the local cookie. Origin/Host and development checks remain mandatory; writes require the exact matching Origin. Production fails closed. Callback behavior and guards are unchanged. Request/error logging must not expose OAuth parameters or tokens.
 
-## Deliberate blocker
+## Text workflow
 
-No website OAuth consent or authenticated tool listing was available during implementation. Therefore **there is no tool call implementation**. No input keys, task IDs, polling intervals, approval protocol, or success responses are invented. The preview confirmation control cannot send. Even direct or repeated requests to the authenticated check-in endpoint return `blocked`; unconfirmed requests return `approval_required`. These are local application states, not claimed Fo responses.
+1. Select an actual local study session. Ended scheduled sessions are described as missed. Optionally explicitly select a fresh Fo conversation; otherwise the current conversation is used.
+2. Request a preview. The server freezes and signs the exact instructions, session reference and conversation choice, bound to the local login for ten minutes.
+3. Read the preview, check the approval box, then select Confirm and send text. No message is sent merely by opening Preferences, preparing a draft, connecting, or refreshing saved status.
+4. Working replies are polled automatically with `get_fo_reply` (`waitSeconds: 10`), with a delay between polls. Polling stops for a final reply, error, question, or after ten minutes. Keep waiting resumes read-only polling; Pause reply checking does not cancel Fo’s remote work. Reopening the panel loads saved status; Keep waiting resumes an outstanding reply.
+5. Answers have their own exact preview and confirmation and continue the saved conversation. Internal conversation IDs are not exposed by the UI/API.
 
-Connection operations expose pending/error states and reject concurrent attempts. Actual asynchronous Fo replies, tasks, and remote approvals remain unimplemented pending verified schemas and output contracts. No automatic polling, retries of check-ins, background actions, or telephone calls are enabled. OAuth/connection may perform SDK authentication negotiation; that never invokes a Fo tool.
+Fo has no structured approval flag in these tool outputs. Question/approval text detection conservatively pauses polling; it may pause on an ordinary question. SDK protocol-level input requests are never auto-approved or auto-resubmitted. Such requests require inspection in Fo directly. Text instructions forbid calls, outside messages, purchases, calendar changes and connected services; these are instructions to Fo, not a technical restriction on its account capabilities.
 
-Before enabling submission, add a schema-validated adapter, durable per-session idempotency records written before dispatch (including ambiguous timeouts), exact instruction binding at confirmation, explicit approval presentation, and safe status-only polling using verified reply fields. Test real text submission only with explicit user confirmation of the preview. A real end-to-end check-in has **not** succeeded or been claimed.
+## Duplicate protection and recovery
+
+A private `.ryluno-fo/requests.json` journal (ignored by Git, directory mode 700, files mode 600) records instructions, replies and private conversation references, never OAuth tokens. It is written and synced before dispatch. One initial check-in is permitted per session, with separately confirmed replies. An exclusive filesystem lock prevents concurrent operations across requests/processes. Active, unresolved-approval and uncertain-delivery requests block unrelated new sends. Duplicate tickets return saved status, never resubmit. The adapter also refuses a second `ask_fo` dispatch and disables automatic input fulfilment and transport reconnection retries.
+
+Do not delete the journal to retry a message: that removes duplicate protection. A crash may leave `operation.lock` or a `sending` record. Sending stays blocked. Inspect Fo directly to establish whether the message ran before developer-assisted reconciliation; never automatically remove a stale lock or resend uncertain delivery. Poll failures can be resumed without resending the original message. Keep the same single Wajo account for this local installation.
+
+Browser planner storage, onboarding, scheduling and review data are unchanged (`algopilot.v1`). The journal is separate from browser backups; treat it as private local data.
 
 ## Validation
 
-`npm test` uses Node's `react-server` condition to load server-only modules in route tests. Tests cover production/origin/host authorization, unauthenticated access, state expiry/replay, issuer/resource restrictions, connection pending/failure, concurrent connection suppression, and repeated blocked submissions. They do not simulate a successful Fo response or establish Wajo compatibility.
+Run TypeScript (`npx tsc --noEmit`), `npm run lint`, `npm test`, and `npm run build`. Tests cover local authorization, cookie verification, mocked OAuth/PKCE, failed connections, strict schema drift, signed approval binding, durable and concurrent duplicate suppression, ambiguous sends, approval pauses and asynchronous replies. They do not establish live message delivery.
 
-The official SDK OAuth flow is additionally tested against mock discovery, registration, and token endpoints (including PKCE and resource binding). Final verification: 14 tests passed, TypeScript passed, ESLint passed, and the production build passed. The build required an unrestricted run because Turbopack's local worker port was blocked by the sandbox. No deployment or push was performed.
+SDK references: [OAuth](https://ts.sdk.modelcontextprotocol.io/v2/clients/oauth.md), [calling tools](https://ts.sdk.modelcontextprotocol.io/v2/clients/calling.md). Installed v2 declarations were also consulted for manual input-required handling.

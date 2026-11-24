@@ -16,14 +16,16 @@ export const TEXT_CONTRACTS = {
   },
 };
 export function object(value: unknown): value is Record<string, unknown> { return !!value && typeof value === 'object' && !Array.isArray(value); }
-function canonical(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonical).sort();
+function canonical(value: unknown, propertyMap = false): unknown {
+  if (Array.isArray(value)) return value.map(v => canonical(v)).sort();
   if (!object(value)) return value;
-  return Object.fromEntries(Object.keys(value).filter(k => !['description', 'title', '$schema'].includes(k)).sort().map(k => [k, canonical(value[k])]));
+  return Object.fromEntries(Object.keys(value).filter(k => propertyMap || !['description', 'title', '$schema'].includes(k)).sort().map(k => [k, canonical(value[k], !propertyMap && k === 'properties')]));
 }
 export function verifiedTextSchemas(tools: unknown[]): boolean {
   return Object.entries(TEXT_CONTRACTS).every(([name, contract]) => {
-    const tool = tools.find(t => object(t) && t.name === name);
+    const matches = tools.filter(t => object(t) && t.name === name);
+    if (matches.length !== 1) return false;
+    const tool = matches[0];
     return object(tool) && ['inputSchema', 'outputSchema'].every(k =>
       JSON.stringify(canonical(tool[k])) === JSON.stringify(canonical(contract[k as keyof typeof contract])));
   });

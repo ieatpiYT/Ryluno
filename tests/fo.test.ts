@@ -89,6 +89,9 @@ test('routes enforce login, preserve re-unlock state, reject concurrent attempts
     assert.equal(locked.status, 401);
     assert.equal((await locked.json()).reason, 'missing_cookie');
     assert.equal((await handleFo(request('connect', 'POST'), 'connect')).status, 401);
+    for (const action of ['prepare', 'check-in', 'reply', 'check-ins']) {
+      assert.equal((await handleFo(request(action, action === 'check-ins' ? 'GET' : 'POST'), action)).status, 401);
+    }
     const login = await handleFo(request('login', 'POST', { password: env.FO_DEV_PASSWORD }), 'login');
     assert.equal(login.status, 200);
     const cookie = login.headers.get('set-cookie')!.split(';')[0];

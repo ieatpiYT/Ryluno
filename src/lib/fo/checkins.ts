@@ -40,8 +40,14 @@ export class CheckinService {
   private async read(): Promise<Journal> {
     try {
       const data = JSON.parse(await readFile(join(this.directory, 'requests.json'), 'utf8'));
-      if (data.version !== 1 || !Array.isArray(data.records)) throw new Error('Invalid journal');
-      return data;
+      if (!object(data) || data.version !== 1 || !Array.isArray(data.records) || data.records.length > 1000
+        || data.records.some(r => !object(r) || typeof r.id !== 'string' || typeof r.sessionId !== 'string'
+          || typeof r.instructions !== 'string' || typeof r.newConversation !== 'boolean'
+          || !['sending', 'working', 'complete', 'failed', 'approval_required', 'unknown'].includes(String(r.status))
+          || !Number.isFinite(r.createdAt) || !Number.isFinite(r.updatedAt)
+          || ['conversationId', 'response', 'progress', 'error', 'parentId'].some(k => r[k] !== undefined && typeof r[k] !== 'string'))
+        || new Set(data.records.map(r => r.id)).size !== data.records.length) throw new Error('Invalid journal');
+      return data as Journal;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { version: 1, records: [] };
       throw new CheckinError('The private request journal could not be read. Sending is blocked to prevent duplicates.', 503);
@@ -100,7 +106,7 @@ export class CheckinService {
     return this.locked(async journal => {
       const existing = journal.records.find(r => r.id === payload.id);
       if (existing) return view(existing);
-      if (journal.records.some(r => ['sending', 'working', 'unknown'].includes(r.status))) throw new CheckinError('A prior request is still working or has uncertain delivery. Another message is blocked.', 409);
+      if (journal.records.some(r => ['sending', 'working', 'unknown'].includes(r.status) || (r.status === 'approval_required' && !r.superseded && r.id !== payload.parentId))) throw new CheckinError('A prior request is still working, needs your answer, or has uncertain delivery. Another message is blocked.', 409);
       const parent = payload.parentId ? journal.records.find(r => r.id === payload.parentId) : undefined;
       if (payload.parentId && (!parent || !view(parent).canReply)) throw new CheckinError('The previous reply is no longer available to continue.', 409);
       if (journal.records.length >= 1000) throw new CheckinError('The local request journal is full. Sending is blocked.', 409);

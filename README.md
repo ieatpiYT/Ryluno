@@ -15,12 +15,11 @@ Ryluno makes room for steady progress: log a problem, reflect on how it went, an
 
 ### Fo integration status
 
-Fo is not yet a live accountability service in Ryluno. The website OAuth foundation is intended for authenticated localhost development, but live website authorization and Fo tool schemas still need verification.
+Website OAuth and authenticated tool discovery have succeeded. Text check-ins now support exact-message approval, durable duplicate protection, and asynchronous reply polling in authenticated localhost development.
 
-- **Available:** text-only accountability instruction previews.
-- **Not yet verified:** live website authorization and Fo tool schemas.
-- **Disabled:** check-in submission and reply retrieval.
-- **Not enabled:** phone calls.
+- **Implemented:** confirmed text check-ins and separately confirmed answers.
+- **Not live-tested:** actual message delivery; no real message was sent during implementation.
+- **Disabled:** voice calls.
 
 See [Fo integration setup and limitations](docs/fo-integration.md).
 
