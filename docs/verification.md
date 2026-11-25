@@ -1,5 +1,13 @@
 # Verification and release gate
 
+## Launch sprint — 2026-11-25
+
+- Account header uses the existing panel, foreground and border theme variables. Browser computed styles confirmed a dark background and light text.
+- All 40 automated tests, TypeScript, ESLint and production build passed.
+- Required local environment fields are populated; HTTPS callback and automation flags remain false. Values were not logged.
+- Unauthenticated workspace and cron requests returned 401; companion status rejected unauthenticated access (400). The available browser is at sign-in, so hosted persistence, cross-account isolation and per-user Fo authorization remain pending authenticated browser access.
+- No external message, call, push or deployment was performed. Live text/reply, browser voice, telephone eligibility and browser-closed scheduling remain unverified.
+
 ## Resumed OAuth and cancellation verification — 2026-11-24
 
 - OAuth discovery state is now serialized and restored with the per-user provider snapshot. The mocked HTTPS callback succeeds after constructing a fresh provider from that snapshot.
