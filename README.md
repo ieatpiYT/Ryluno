@@ -14,7 +14,7 @@ A technical interview study companion built with Next.js App Router and TypeScri
 
 ## Verification boundary
 
-This repository is **not yet a shipped, live-verified MVP**. Local unit tests and embedded PostgreSQL tests do not prove hosted Supabase login, Wajo HTTPS callback acceptance, real Fo delivery, browser voice creation, or browser-closed scheduling. Production requires the setup and live checks below.
+This repository is **not yet shipped**. Live local-app testing verified hosted Supabase practice persistence and second-account isolation, persisted per-user Fo authorization, and real text replies. The owner confirmed two-way browser voice audio. Production HTTPS OAuth and browser-closed scheduling remain unverified. Production requires the setup and live checks below.
 
 Official Wajo documentation confirms outbound calls and conversational scheduling exist, but this integration has no verified machine-readable recipient ownership or telephone cancellation contract. Telephone reminders and Fo-native schedules are not enabled. Browser voice is a separate capability. Fo suggestions never automatically change Ryluno commitments.
 

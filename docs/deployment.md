@@ -28,7 +28,7 @@ The study document deliberately stores problems and attempts together, with RLS-
 
 ## 3. Local environment
 
-For a new checkout, copy [.env.example](../.env.example) to `.env.local`. For this resumed workspace, `.env.local` already exists with generated local encryption/scheduler secrets and blank Supabase fields: fill the three Supabase fields without overwriting the file or rotating existing keys. Set:
+For a new checkout, copy [.env.example](../.env.example) to `.env.local`. This workspace already has configured Supabase fields and local encryption/scheduler secrets; preserve them. Use the following names when configuring deployment environments:
 
 | Variable | Value | Browser exposed? |
 | --- | --- | --- |

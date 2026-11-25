@@ -9,8 +9,8 @@
 
 | Capability | Ryluno implementation | Live verification |
 | --- | --- | --- |
-| Text conversation | Exact preview, explicit confirmation, asynchronous polling, confirmed replies | Pending authenticated reconnect and approved send |
-| Browser voice | Discovers `start_fo_call`, accepts only schemas allowing empty inputs, validates HTTPS Wajo output link, durable request reservation | Pending authenticated schema/result and call creation |
+| Text conversation | Exact preview, explicit confirmation, asynchronous polling, confirmed replies | Real check-in and user reply verified in the local authenticated app on 2026-11-25 |
+| Browser voice | Discovers `start_fo_call`, accepts only schemas allowing empty inputs, validates HTTPS Wajo output link, durable request reservation | Live schema and link creation verified; owner confirmed hearing and speaking with Fo on 2026-11-25 |
 | Outbound phone call | Disabled | Official product support exists; recipient ownership, bounded execution and cancellation not verified in this integration |
 | Fo-native schedule | Not enabled | General `/mcp` documentation does not establish the `/fo` scheduling/cancellation contract |
 | Conditional missed-session text | Supabase Cron evaluates persisted study data, then delegates one check-in | Disabled until deployed browser-closed execution is verified |
