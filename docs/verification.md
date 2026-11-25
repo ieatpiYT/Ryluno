@@ -1,5 +1,12 @@
 # Verification and release gate
 
+## Resumed OAuth and cancellation verification — 2026-11-24
+
+- OAuth discovery state is now serialized and restored with the per-user provider snapshot. The mocked HTTPS callback succeeds after constructing a fresh provider from that snapshot.
+- Migration 004 makes disabling accountability and disconnecting Fo transactional, cancels queued requests, and restricts browser database privileges. Embedded PostgreSQL regression checks cover rollback, isolation and preservation of already-dispatched requests.
+- Focused regression tests: 8 passed. Final full suite: 40 passed. TypeScript, ESLint and production build passed.
+- These are local checks using mocked OAuth and embedded PostgreSQL, not live Wajo or hosted Supabase verification. No messages, calls, push or deployment were performed.
+
 ## Automated checks
 
 Run `npm test`, `npx tsc --noEmit`, `npm run lint`, `npm run build`, and `node scripts/check-tracked-secrets.mjs`.
