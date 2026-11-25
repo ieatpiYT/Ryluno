@@ -8,16 +8,16 @@ const ISSUER = 'https://mcp.api.wajo.ai';
 type Tokens = Awaited<ReturnType<OAuthClientProvider['tokens']>>;
 type Information = Awaited<ReturnType<OAuthClientProvider['clientInformation']>>;
 
-export type ProviderSnapshot = {info: Information; tokens: Tokens; verifier:string; flow:{state:string;expires:number}};
+export type ProviderSnapshot = {info: Information; tokens: Tokens; verifier:string; discovery?:OAuthDiscoveryState; flow:{state:string;expires:number}};
 
 /** OAuth state stays server-side. Production callers persist only encrypted snapshots. */
 export class FoProvider implements OAuthClientProvider {
   readonly redirectUrl: string;
   constructor(redirectUrl = 'http://localhost:3000/api/fo/callback', saved?: ProviderSnapshot) {
     this.redirectUrl = redirectUrl;
-    if(saved){this.info=saved.info;this.tokenSet=saved.tokens;this.verifier=saved.verifier;this.flow=saved.flow;}
+    if(saved){this.info=saved.info;this.tokenSet=saved.tokens;this.verifier=saved.verifier;this.discovery=saved.discovery;this.flow=saved.flow;}
   }
-  snapshot(): ProviderSnapshot {return {info:this.info,tokens:this.tokenSet,verifier:this.verifier,flow:this.flow};}
+  snapshot(): ProviderSnapshot {return {info:this.info,tokens:this.tokenSet,verifier:this.verifier,discovery:this.discovery,flow:this.flow};}
   get clientMetadata() { return {
     client_name: this.redirectUrl.startsWith('https://') ? 'Ryluno' : 'Ryluno local development', application_type: 'web' as const,
     redirect_uris: [this.redirectUrl], grant_types: ['authorization_code', 'refresh_token'],

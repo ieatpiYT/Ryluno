@@ -34,6 +34,7 @@ test('encrypted tokens are authenticated, randomized, and bound to the account',
 test('browser voice only allows discovered empty inputs and HTTPS Wajo links',async()=>{
  const {voiceSchemaAvailable,voiceURL}=await import('../src/lib/fo/voice-contracts.ts');
  assert.equal(voiceSchemaAvailable([]),false);
+ assert.equal(voiceSchemaAvailable([{name:'start_fo_call',inputSchema:{type:'object',allOf:[{required:['phone']}]}}]),false);
  assert.equal(voiceSchemaAvailable([{name:'start_fo_call',inputSchema:{type:'object',required:['phone']}}]),false);
  assert.equal(voiceSchemaAvailable([{name:'start_fo_call',inputSchema:{type:'object',required:[]}}]),true);
  assert.equal(voiceURL({url:'https://wajo.ai/call/example'}),'https://wajo.ai/call/example');

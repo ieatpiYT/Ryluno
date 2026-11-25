@@ -80,6 +80,48 @@ test('official SDK discovers OAuth, registers a separate client, uses PKCE, and 
     assert.equal(provider.tokens()?.access_token, 'mock-token');
   } finally { globalThis.fetch = originalFetch; }
 });
+test('HTTPS OAuth survives a serialized provider restart before callback (mock server only)', async () => {
+  const originalFetch = globalThis.fetch;
+  const issuer = 'https://mcp.api.wajo.ai';
+  let provider = new FoProvider('https://ryluno.example/api/companion/callback');
+  let registration = false, exchanged = false;
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    if (url.pathname === '/fo') return new Response('', { status: 401, headers: { 'www-authenticate': `Bearer resource_metadata="${issuer}/.well-known/oauth-protected-resource/fo"` } });
+    if (url.pathname.includes('oauth-protected-resource')) return Response.json({ resource: `${issuer}/fo`, authorization_servers: [issuer], scopes_supported: ['mcp'] });
+    if (url.pathname.includes('oauth-authorization-server')) return Response.json({ issuer, authorization_endpoint: `${issuer}/oauth/authorize`, token_endpoint: `${issuer}/oauth/token`, registration_endpoint: `${issuer}/oauth/register`, response_types_supported: ['code'], grant_types_supported: ['authorization_code', 'refresh_token'], token_endpoint_auth_methods_supported: ['none'], code_challenge_methods_supported: ['S256'] });
+    if (url.pathname === '/oauth/register') {
+      const metadata = JSON.parse(String(init?.body));
+      assert.deepEqual(metadata.redirect_uris, [provider.redirectUrl]);
+      assert.equal(metadata.token_endpoint_auth_method, 'none');
+      registration = true;
+      return Response.json({ ...metadata, client_id: 'mock-ryluno-client' }, { status: 201 });
+    }
+    if (url.pathname === '/oauth/token') {
+      const params = new URLSearchParams(String(init?.body));
+      assert.equal(params.get('client_id'), 'mock-ryluno-client');
+      assert.equal(params.get('code_verifier'), provider.codeVerifier());
+      assert.equal(params.get('resource'), `${issuer}/fo`);
+      exchanged = true;
+      return Response.json({ access_token: 'mock-token', token_type: 'Bearer', expires_in: 3600 });
+    }
+    throw new Error('Unexpected mock request');
+  };
+  try {
+    assert.equal((await inspectFo(provider)).status, 'authorization_required');
+    assert.equal(registration, true);
+    const redirect = new URL(provider.authorizationUrl!);
+    assert.equal(redirect.searchParams.get('state'), provider.flow.state);
+    assert.equal(redirect.searchParams.get('code_challenge_method'), 'S256');
+    assert.ok(redirect.searchParams.get('code_challenge'));
+    provider = new FoProvider(provider.redirectUrl, JSON.parse(JSON.stringify(provider.snapshot())));
+    const connection = transport(provider);
+    try { await connection.finishAuth(new URLSearchParams({ code: 'mock-code' })); }
+    finally { await connection.close(); }
+    assert.equal(exchanged, true);
+    assert.equal(provider.tokens()?.access_token, 'mock-token');
+  } finally { globalThis.fetch = originalFetch; }
+});
 test('routes enforce login, preserve re-unlock state, reject concurrent attempts, and report failures', async (t) => {
   const previous = { NODE_ENV: process.env.NODE_ENV, FO_DEV_ENABLED: process.env.FO_DEV_ENABLED, FO_DEV_PASSWORD: process.env.FO_DEV_PASSWORD };
   Object.assign(process.env, env);

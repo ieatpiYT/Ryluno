@@ -4,8 +4,8 @@ import { review } from '@/lib/review';
 export async function GET() {
   try {
     const { db, user } = await requireUser();
-    const { data, error } = await db.from('study_documents').select('data,revision').eq('user_id', user.id).maybeSingle();
-    if (error) throw error;
+    const { data, error } = await db.from('study_documents').select('data,revision,imported_at').eq('user_id', user.id).maybeSingle();
+    if (error) return Response.json({message:'Database is not ready. Apply the Ryluno migrations and try again.'},{status:503});
     return Response.json({ document: data, user: { id: user.id, email: user.email } }, { headers: { 'Cache-Control': 'no-store' } });
   } catch { return Response.json({ message: 'Sign in or check database setup.' }, { status: 401 }); }
 }

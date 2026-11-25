@@ -18,8 +18,8 @@ The configured origin is `https://github.com/ieatpiYT/Ryluno.git`. The Git index
 
 1. Go to https://supabase.com/dashboard → **New project**. Select your organization. Enter **Project name: Ryluno**, generate a database password and save it in your password manager, choose a nearby **Region**, then **Create new project**. Wait until the project is ready.
 2. Sidebar **SQL Editor** → **New query**. Paste the contents of [001_core.sql](../supabase/migrations/001_core.sql), then **Run**. Run it once. This creates profiles, the study aggregate and RLS views, Fo connections/state/history, preferences, locks and indexes. Do not disable RLS to fix an error.
-3. Create another query and run [002_scheduler.sql](../supabase/migrations/002_scheduler.sql). It adds scheduler indexes but does not send or schedule anything. Then run [003_dispatch_claim.sql](../supabase/migrations/003_dispatch_claim.sql) to install atomic dispatch and stale-event cancellation.
-4. **Project Settings** (gear) → **Data API**: copy **Project URL**. **Project Settings → API Keys**: copy the **Publishable key**. Dashboard versions also expose these under the project's **Connect** dialog.
+3. Create another query and run [002_scheduler.sql](../supabase/migrations/002_scheduler.sql). It adds scheduler indexes but does not send or schedule anything. Then run [003_dispatch_claim.sql](../supabase/migrations/003_dispatch_claim.sql) to install atomic dispatch and stale-event cancellation. Finally run [004_atomic_accountability.sql](../supabase/migrations/004_atomic_accountability.sql) for transactional disabling/disconnection and least-privilege grants. If 001–003 were already applied successfully, run only 004; do not rerun the earlier table-creation scripts.
+4. **Connect** at the top of the project dashboard: copy the **Project URL** and **Publishable key**. You can also find keys under **Project Settings → API Keys**. These locations are confirmed in the [official key documentation](https://supabase.com/docs/guides/getting-started/api-keys).
 5. In **API Keys**, use the **Legacy anon, service_role API keys** tab to reveal **service_role**. Store it only in the local environment file or Vercel's private environment-variable field. It bypasses RLS and must never be a `NEXT_PUBLIC_` variable. The user-facing API uses the publishable key and verified user session; the service key is limited to server Fo/scheduling code.
 6. Sidebar **Authentication → Sign In / Providers → Email**: enable email sign-in and **Confirm email**. For a real launch, configure your own SMTP provider under **Authentication → Email → SMTP Settings**; the default test mail service has delivery/recipient limits.
 7. **Authentication → URL Configuration**: initially set **Site URL** to `http://localhost:3000`. Add **Redirect URL** `http://localhost:3000/auth/callback`, then **Save changes**. The email must be opened in the browser that started signup because the flow uses PKCE.
@@ -28,7 +28,7 @@ The study document deliberately stores problems and attempts together, with RLS-
 
 ## 3. Local environment
 
-Copy [.env.example](../.env.example) to `.env.local`. Preserve any existing development values. Set:
+For a new checkout, copy [.env.example](../.env.example) to `.env.local`. For this resumed workspace, `.env.local` already exists with generated local encryption/scheduler secrets and blank Supabase fields: fill the three Supabase fields without overwriting the file or rotating existing keys. Set:
 
 | Variable | Value | Browser exposed? |
 | --- | --- | --- |

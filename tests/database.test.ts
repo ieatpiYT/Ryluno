@@ -11,6 +11,7 @@ test('PostgreSQL migration enforces RLS, import idempotency, revisions and atomi
  await pg.exec(await readFile(new URL('../supabase/migrations/001_core.sql',import.meta.url),'utf8'));
  await pg.exec(await readFile(new URL('../supabase/migrations/002_scheduler.sql',import.meta.url),'utf8'));
  await pg.exec(await readFile(new URL('../supabase/migrations/003_dispatch_claim.sql',import.meta.url),'utf8'));
+ await pg.exec(await readFile(new URL('../supabase/migrations/004_atomic_accountability.sql',import.meta.url),'utf8'));
  await pg.exec(`grant all on all tables in schema public to service_role; insert into auth.users values ('${a}'),('${b}');`);
  await pg.exec(`set role authenticated;set request.jwt.claim.sub='${a}';`);
  const doc=emptyData();
@@ -29,6 +30,8 @@ test('PostgreSQL migration enforces RLS, import idempotency, revisions and atomi
  await pg.query("insert into public.fo_connections(user_id,encrypted) values($1,'ciphertext')",[a]);
  await pg.exec(`set role authenticated;set request.jwt.claim.sub='${a}';`);
  await assert.rejects(pg.query('select * from public.fo_connections'));
+ await assert.rejects(pg.query('truncate public.study_documents'));
+ await assert.rejects(pg.query('select public.disconnect_fo($1)',[a]));
  await assert.rejects(pg.query('select public.acquire_fo_lock($1,$2)',[a,b]));
  await pg.exec('reset role;set role service_role;');
  assert.equal((await pg.query<{acquire_fo_lock:boolean}>('select public.acquire_fo_lock($1,$2)',[a,b])).rows[0].acquire_fo_lock,true);
@@ -48,5 +51,16 @@ test('PostgreSQL migration enforces RLS, import idempotency, revisions and atomi
  assert.equal((await pg.query("delete from public.fo_oauth_flows where state_hash='state' and user_id=$1 returning state_hash",[b])).rows.length,0);
  assert.equal((await pg.query("delete from public.fo_oauth_flows where state_hash='state' and user_id=$1 returning state_hash",[a])).rows.length,1);
  assert.equal((await pg.query("delete from public.fo_oauth_flows where state_hash='state' and user_id=$1 returning state_hash",[a])).rows.length,0);
+
+ const queued=(await pg.query<{id:string}>("insert into public.fo_requests(user_id,dedupe_key,kind,instructions) values($1,'cancel-me','text','hello') returning id",[a])).rows[0].id;
+ await assert.rejects(pg.query('select public.set_accountability_preferences($1,false,$2,21,9,99)',[a,'UTC']));
+ assert.equal((await pg.query<{status:string}>('select status from public.fo_requests where id=$1',[queued])).rows[0].status,'queued');
+ await pg.query('select public.set_accountability_preferences($1,false,$2,21,9,1)',[a,'UTC']);
+ assert.equal((await pg.query<{status:string}>('select status from public.fo_requests where id=$1',[queued])).rows[0].status,'cancelled');
+ await pg.query("insert into public.fo_connections(user_id,encrypted) values($1,'other-account')",[b]);
+ await pg.query('select public.disconnect_fo($1)',[a]);
+ assert.equal((await pg.query('select * from public.fo_connections where user_id=$1',[a])).rows.length,0);
+ assert.equal((await pg.query('select * from public.fo_connections where user_id=$1',[b])).rows.length,1);
+ assert.equal((await pg.query<{status:string}>('select status from public.fo_requests where id=$1',[requestId])).rows[0].status,'sending');
  }finally{await pg.close();}
 });

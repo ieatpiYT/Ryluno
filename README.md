@@ -8,7 +8,7 @@ A technical interview study companion built with Next.js App Router and TypeScri
 - Device-only mode with validated JSON backup/import.
 - Optional Supabase email/password authentication and account storage. A versioned document stores problems, attempts, sessions, availability, preferences and computed review information atomically. RLS-protected views expose individual record types.
 - Explicit, one-time browser-data import into an empty account; optimistic revision checks prevent conflicting saves.
-- Per-user Fo OAuth with PKCE, browser-bound single-use state, encrypted server-side credentials and durable action reservations.
+- Per-user Fo OAuth with PKCE, browser-bound single-use state, encrypted server-side credentials (including SDK discovery state across restarts) and durable action reservations.
 - Previewed/confirmed Fo text requests, asynchronous reply retrieval, and a labelled demo missed-session check-in. Browser voice requests are guarded by authenticated tool discovery and safe-link validation.
 - A Supabase Cron endpoint for missed-session text check-ins, with quiet hours, cancellation, a rolling frequency cap and duplicate suppression. It is disabled by default.
 

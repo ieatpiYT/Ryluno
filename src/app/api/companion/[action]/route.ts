@@ -18,7 +18,8 @@ async function handle(request:Request,{params}:{params:Promise<{action:string}>}
  try{
  const {user}=await requireUser();const db=adminClient();
  if(request.method==='GET'&&action==='status'){
-   const [{data:connection},{data:preferences}]=await Promise.all([db.from('fo_connections').select('updated_at').eq('user_id',user.id).maybeSingle(),db.from('accountability_preferences').select().eq('user_id',user.id).maybeSingle()]);
+   const [{data:connection,error:connectionError},{data:preferences,error:preferencesError}]=await Promise.all([db.from('fo_connections').select('updated_at').eq('user_id',user.id).maybeSingle(),db.from('accountability_preferences').select().eq('user_id',user.id).maybeSingle()]);
+   if(connectionError||preferencesError)throw new Error('Could not read Fo status. Check database migrations.');
    return json({connected:!!connection,preferences,history:await history(user.id),automationAvailable:process.env.FO_AUTOMATION_VERIFIED==='true',productionAuthorizationVerified:process.env.FO_HTTPS_CALLBACK_VERIFIED==='true'});
  }
  return await withFoLock(user.id,async()=>{
@@ -42,17 +43,13 @@ async function handle(request:Request,{params}:{params:Promise<{action:string}>}
    return json({authorizationUrl:provider.authorizationUrl});
  }
  if(action==='disconnect'){
-   const {error}=await db.from('fo_connections').delete().eq('user_id',user.id);if(error)throw new Error('Could not disconnect');
-   await db.from('fo_oauth_flows').delete().eq('user_id',user.id);
-   await db.from('accountability_preferences').update({enabled:false}).eq('user_id',user.id);
-   await db.from('fo_requests').update({status:'cancelled'}).eq('user_id',user.id).eq('status','queued');return json({ok:true});
+   const {error}=await db.rpc('disconnect_fo',{owner:user.id});if(error)throw new Error('Could not disconnect; no cancellation was confirmed.');return json({ok:true});
  }
  if(action==='preferences'){
    if(typeof body.enabled!=='boolean'||!Number.isInteger(body.quiet_start)||!Number.isInteger(body.quiet_end)||body.quiet_start<0||body.quiet_start>23||body.quiet_end<0||body.quiet_end>23||![1,2].includes(body.daily_limit))throw new Error('Invalid preferences');
-   new Intl.DateTimeFormat('en',{timeZone:body.timezone}).format();
+   if(typeof body.timezone!=='string'||!body.timezone)throw new Error('Invalid timezone');new Intl.DateTimeFormat('en',{timeZone:body.timezone}).format();
    if(body.enabled&&(body.confirmed!==true||process.env.FO_AUTOMATION_VERIFIED!=='true'))throw new Error('Automatic check-ins require deployment verification and your consent.');
-   const {error}=await db.from('accountability_preferences').upsert({user_id:user.id,enabled:body.enabled,method:'text',timezone:body.timezone,quiet_start:body.quiet_start,quiet_end:body.quiet_end,daily_limit:body.daily_limit,consent_at:body.enabled?new Date().toISOString():null,updated_at:new Date().toISOString()});if(error)throw new Error('Could not save preferences');
-   if(!body.enabled)await db.from('fo_requests').update({status:'cancelled'}).eq('user_id',user.id).eq('status','queued');return json({ok:true});
+   const {error}=await db.rpc('set_accountability_preferences',{owner:user.id,active:body.enabled,zone:body.timezone,quiet_from:body.quiet_start,quiet_until:body.quiet_end,maximum:body.daily_limit});if(error)throw new Error('Could not save preferences or confirm cancellation.');return json({ok:true});
  }
  if(action==='voice-status'){const {tools}=await verifiedProvider(user.id);return json({available:voiceSchemaAvailable(tools),tools:tools.filter(t=>t.name==='start_fo_call')});}
  if(action==='voice'){
@@ -63,7 +60,7 @@ async function handle(request:Request,{params}:{params:Promise<{action:string}>}
    try{const url=await startBrowserVoice(provider);const {error}=await db.from('fo_requests').update({status:'complete',result:{url}}).eq('user_id',user.id).eq('id',row.id);if(error)throw new Error('Could not save call link');return json({url});}catch{await db.from('fo_requests').update({status:'unknown'}).eq('user_id',user.id).eq('id',row.id);throw new Error('Delivery is uncertain. Check Fo directly before creating another call.');}
  }
  if(action==='cancel'){
-   const {error}=await db.from('fo_requests').update({status:'cancelled'}).eq('user_id',user.id).eq('id',body.id).eq('status','queued');if(error)throw new Error('Could not cancel');return json({ok:true,message:'Queued action cancelled. Already dispatched Fo work must be stopped in Fo.'});
+   const {data:cancelled,error}=await db.from('fo_requests').update({status:'cancelled',updated_at:new Date().toISOString()}).eq('user_id',user.id).eq('id',body.id).eq('status','queued').select('id');if(error)throw new Error('Could not cancel');return json({ok:!!cancelled?.length,message:cancelled?.length?'Queued action cancelled.':'No queued action was cancelled. Already dispatched Fo work must be stopped in Fo.'});
  }
  if(action==='poll'){await pollRequest(user.id,String(body.id));return json({history:await history(user.id)});}
  if(action==='prepare'){
