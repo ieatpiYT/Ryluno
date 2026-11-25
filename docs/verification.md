@@ -2,6 +2,15 @@
 
 ## Launch sprint — 2026-11-25
 
+Authenticated follow-up:
+- Saved a clearly labelled temporary practice entry through the UI, reloaded, and retrieved revision 1 with its attempt from the authenticated workspace endpoint. Removed only that test entry using the current revision; cleanup returned 200.
+- A save claiming a different account ID returned 409.
+- Created a temporary second hosted Supabase account without sending email. Its authenticated client could not read the existing account's study document, Fo connection or request history; it could save and read only its own workspace. Browser-role execution of `disconnect_fo` was denied. Deleted the temporary account successfully afterward.
+- The real user's persisted Fo connection successfully performed authenticated tool discovery. `start_fo_call` accepts an empty object and returns `joinUrl` and `expiresAt`; its description specifies a single-use browser link expiring after ten minutes, without a telephone number.
+- Existing user-created voice requests are recorded as complete; actual audio has not been observed. One text-only check-in was prepared for explicit approval, not sent by the agent.
+- Subsequent authenticated history inspection confirmed that the exact approved check-in had already been sent through Ryluno and received a real Fo response suggesting one 25-minute session at 8pm. A user reply of `ok` also received a completed response. The agent did not duplicate either message. The workspace still had zero scheduled sessions and automation was disabled; conversational agreement is not evidence of a scheduled reminder.
+- Prepared a separate, unsent capability-only question about telephone ownership, account permission, cancellation, quiet hours and frequency limits. It explicitly forbids calls and scheduling. Awaiting approval and actual voice-audio confirmation.
+
 - Account header uses the existing panel, foreground and border theme variables. Browser computed styles confirmed a dark background and light text.
 - All 40 automated tests, TypeScript, ESLint and production build passed.
 - Required local environment fields are populated; HTTPS callback and automation flags remain false. Values were not logged.
