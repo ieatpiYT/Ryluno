@@ -2,7 +2,7 @@ import { requireUser, sameOrigin, adminClient } from '@/lib/supabase/server';
 import { FoProvider, inspectFo, transport, type ProviderSnapshot } from '@/lib/fo/client';
 import { verifiedTextSchemas } from '@/lib/fo/contracts';
 import { seal, unseal } from '@/lib/fo/vault';
-import { callbackURL, digest, withFoLock, storeProvider, dispatchText, pollRequest, history } from '@/lib/fo/production';
+import { callbackURL, digest, withFoLock, storeProvider, dispatchText, pollRequest, history, recordConceptualReview } from '@/lib/fo/production';
 import { interventionContext } from '@/lib/fo/accountability';
 import { validateData } from '@/lib/storage';
 import { startBrowserVoice, voiceSchemaAvailable } from '@/lib/fo/voice';
@@ -85,7 +85,7 @@ async function handle(request:Request,{params}:{params:Promise<{action:string}>}
    let conversationId:string|undefined;
    if(draft.parentId){const {data:parent}=await db.from('fo_requests').select('conversation_id,status').eq('user_id',user.id).eq('id',draft.parentId).single();if(!parent?.conversation_id||!['approval_required','complete'].includes(parent.status))throw new Error('Invalid reply target');conversationId=parent.conversation_id;}
    const {data:row,error}=await db.from('fo_requests').insert({user_id:user.id,dedupe_key:key,kind:draft.kind,instructions:draft.instructions,conversation_id:conversationId}).select('id').single();if(error)throw new Error('Could not reserve request');
-   await dispatchText(user.id,row.id);if(draft.parentId)await db.from('fo_requests').update({status:'answered'}).eq('user_id',user.id).eq('id',draft.parentId).eq('status','approval_required');return json({history:await history(user.id)});
+   await dispatchText(user.id,row.id);if(draft.parentId){const {data:parent}=await db.from('fo_requests').select('kind').eq('user_id',user.id).eq('id',draft.parentId).single();if(parent?.kind==='coaching')await recordConceptualReview(user.id,draft.parentId,draft.instructions.replace(/^Ryluno study conversation\. The user replies: /,'').split('\nKeep this text study conversation.')[0]);await db.from('fo_requests').update({status:'answered'}).eq('user_id',user.id).eq('id',draft.parentId).eq('status','approval_required');}return json({history:await history(user.id)});
  }
  return json({message:'Unsupported operation'},405);
  });

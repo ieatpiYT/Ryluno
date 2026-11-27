@@ -5,6 +5,7 @@ import { FoProvider, inspectFo, type ProviderSnapshot } from './client';
 import { seal, unseal } from './vault';
 import { openTextConnection, type TextConnection } from './adapter';
 import { asksForAnswer } from './contracts';
+import { evaluateConceptualAnswer, promptFromRequest } from '../coaching';
 export const digest=(s:string)=>createHash('sha256').update(s).digest('hex');
 export function callbackURL(){const origin=process.env.APP_ORIGIN;if(!origin||(!origin.startsWith('https://')&&origin!=='http://localhost:3000'))throw new Error('Configure application origin');return `${origin}/api/companion/callback`;}
 export async function withFoLock<T>(owner:string,run:()=>Promise<T>):Promise<T>{const db=adminClient(),token=randomUUID();const {data,error}=await db.rpc('acquire_fo_lock',{owner,lock_token:token});if(error||!data)throw new Error('Another Fo operation is in progress. Try again shortly.');try{return await run();}finally{await db.from('fo_user_locks').delete().eq('user_id',owner).eq('token',token);}}
@@ -16,4 +17,11 @@ export async function dispatchText(owner:string,id:string){const db=adminClient(
  catch{await db.from('fo_requests').update({status:'unknown',updated_at:new Date().toISOString()}).eq('id',id).eq('user_id',owner);throw new Error('Delivery is uncertain. Check Fo directly; this request will not be resent.');}
  }finally{await connection.close();}}
 export async function pollRequest(owner:string,id:string){const db=adminClient();const {data:row}=await db.from('fo_requests').select().eq('user_id',owner).eq('id',id).single();if(!row?.conversation_id||!['working','approval_required'].includes(row.status))throw new Error('No reply to retrieve');const {provider}=await verifiedProvider(owner);const connection=await openTextConnection(provider);try{const reply=await connection.poll(row.conversation_id);const {error}=await db.from('fo_requests').update({result:reply,status:asksForAnswer(reply)?'approval_required':reply.status,updated_at:new Date().toISOString()}).eq('user_id',owner).eq('id',id);if(error)throw new Error('Could not save reply');}finally{await connection.close();}}
+export async function recordConceptualReview(owner:string,parentId:string,answer:string,source:'fo-text'|'browser-voice'='fo-text') {
+ const db=adminClient(); const {data:row}=await db.from('fo_requests').select('coaching_topic,coaching_question,coaching_expected,coaching_rubric,kind').eq('user_id',owner).eq('id',parentId).single();
+ if (row?.kind !== 'coaching') return false; const prompt=promptFromRequest(row); if(!prompt) throw new Error('Coaching rubric is unavailable');
+ const result=evaluateConceptualAnswer(prompt,answer); const interval=result.passed?7:1;
+ const {error}=await db.from('conceptual_reviews').insert({user_id:owner,topic:prompt.topic,question:prompt.question,answer,score:result.score,passed:result.passed,source,interval_days:interval,due_at:new Date(Date.now()+interval*86400000).toISOString()});
+ if(error) throw new Error('Could not save conceptual review'); return true;
+}
 export async function history(owner:string){const {data,error}=await adminClient().from('fo_requests').select('id,kind,status,instructions,result,created_at').eq('user_id',owner).order('created_at',{ascending:false}).limit(15);if(error)throw new Error('Could not read history');return (data??[]).map(row=>({...row,result:row.result?{response:row.result.response,progress:row.result.progress,url:row.result.url}:null}));}

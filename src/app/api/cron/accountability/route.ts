@@ -26,7 +26,7 @@ export async function GET(request:Request){
    // Rolling 24-hour cap is stricter than calendar-day frequency, including DST transitions.
    const {count,error:countError}=await db.from('fo_requests').select('id',{count:'exact',head:true}).eq('user_id',p.user_id).gte('created_at',new Date(now.getTime()-86400000).toISOString()).neq('status','cancelled');if(countError||count===null||count>=p.daily_limit)return false;
    const coaching=selected && coachingInstructions(data); const key=coaching?`coaching:${selected.problem.id}:${selected.prompt.topic}`:`missed:${session!.id}`;
-   const {data:row,error}=await db.from('fo_requests').insert({user_id:p.user_id,dedupe_key:key,kind:coaching?'coaching':'missed',source_revision:doc.revision,session_id:coaching?null:session!.id,instructions:coaching??interventionContext(data,session),due_at:now.toISOString()}).select('id').single();if(error)return false;
+   const {data:row,error}=await db.from('fo_requests').insert({user_id:p.user_id,dedupe_key:key,kind:coaching?'coaching':'missed',source_revision:doc.revision,session_id:coaching?null:session!.id,instructions:coaching??interventionContext(data,session),coaching_topic:coaching?selected.prompt.topic:null,coaching_question:coaching?selected.prompt.question:null,coaching_expected:coaching?selected.prompt.expected:null,coaching_rubric:coaching?selected.prompt.rubric:null,due_at:now.toISOString()}).select('id').single();if(error)return false;
    await dispatchText(p.user_id,row.id);return true;
   });if(sent)return Response.json({processed:1});}catch{/* Unknown sends remain durable and are never automatically retried. */}
  }
