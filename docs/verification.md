@@ -1,5 +1,13 @@
 # Verification and release gate
 
+## Authorized telephone reminder — November 25, 2026 (Toronto)
+
+- At 7:31pm EST, submitted the owner's separately approved telephone-only request once through Wajo's browser UI. Before sending, On radar contained only the original four unrelated schedules.
+- Fo explicitly confirmed a real outbound telephone call to the profile phone for 8:00pm EST (`2026-11-26T01:00:00Z`), one attempt, no retry, recurrence, voicemail or external follow-up. Schedule ID: `agent-action-e7aad1aa-bd45-4a43-baec-252de55bd3f2-e0655ec2-02d1-43d9-a643-94d9549a499f`.
+- On radar then showed exactly one new item, “One reminder call: 25-min technical interview practice session,” at 8pm. Its menu offers Pause and Delete. No duplicate was created; no pause/delete was invoked for this authorized call.
+- Scheduling is confirmed by Fo and the active schedule UI; actual telephone delivery remains pending. This is native Wajo scheduling, not Ryluno's Supabase missed-session worker or proof of telephone controls via its `/fo` integration.
+- Owner will deploy through their own Vercel browser. Production URL, HTTPS OAuth and hosted end-to-end verification remain pending.
+
 ## Launch sprint — 2026-11-25
 
 Authenticated follow-up:

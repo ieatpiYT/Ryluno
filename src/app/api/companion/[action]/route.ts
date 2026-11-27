@@ -10,6 +10,7 @@ import { verifiedProvider } from '@/lib/fo/production';
 import { emptyData } from '@/lib/types';
 import { cookies } from 'next/headers';
 import { randomBytes } from 'node:crypto';
+import { coachingInstructions } from '@/lib/coaching';
 export const maxDuration=60;
 const json=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store','Referrer-Policy':'no-referrer'}});
 async function handle(request:Request,{params}:{params:Promise<{action:string}>}){
@@ -65,13 +66,13 @@ async function handle(request:Request,{params}:{params:Promise<{action:string}>}
  if(action==='poll'){await pollRequest(user.id,String(body.id));return json({history:await history(user.id)});}
  if(action==='prepare'){
    const {data:doc,error}=await db.from('study_documents').select('data').eq('user_id',user.id).maybeSingle();if(error)throw new Error('Could not load study context');
-   const data=doc?validateData(doc.data):emptyData();let instructions=interventionContext(data,undefined,body.demo===true);let parentId:string|undefined;
+   const data=doc?validateData(doc.data):emptyData();let instructions=body.coaching===true?coachingInstructions(data,true):interventionContext(data,undefined,body.demo===true);if(!instructions)throw new Error('Add a problem with a topic and an overdue review before starting coaching.');let parentId:string|undefined;
    if(typeof body.parentId==='string'){
      const {data:parent}=await db.from('fo_requests').select('id,status,conversation_id').eq('user_id',user.id).eq('id',body.parentId).single();
      if(!parent?.conversation_id||!['approval_required','complete'].includes(parent.status)||typeof body.answer!=='string'||!body.answer.trim()||body.answer.length>2000)throw new Error('Invalid reply');
      parentId=parent.id;instructions='Ryluno study conversation. The user replies: '+body.answer.trim()+'\nKeep this a text study conversation. Do not call, message anyone outside this conversation, spend, create schedules, or modify connected services. Suggest study changes for confirmation in Ryluno only.';
    }
-   const ticket=seal({owner:user.id,instructions,kind:body.demo===true?'demo':'text',parentId,expires:Date.now()+600000,nonce:randomBytes(16).toString('hex')},user.id);
+   const ticket=seal({owner:user.id,instructions,kind:body.coaching===true?'coaching':body.demo===true?'demo':'text',parentId,expires:Date.now()+600000,nonce:randomBytes(16).toString('hex')},user.id);
    return json({ticket,instructions});
  }
  if(action==='send'){
